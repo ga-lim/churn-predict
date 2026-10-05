@@ -4,7 +4,8 @@ import pandas as pd
 
 from sklearn import model_selection
 from sklearn import tree
-from sklearn import linear_model
+from sklearn import pipeline
+from sklearn import ensemble
 from sklearn import metrics
 
 from feature_engine import discretisation, encoding
@@ -52,8 +53,6 @@ print('Taxa da variável resposta Teste', y_test.mean())
 df_analise = X_train.copy()
 df_analise[target] = y_train.copy()
 
-df_analise.head()
-# %%
 
 sumario = df_analise.groupby(by=target).agg(['mean', 'median']).T
 sumario['diff_abs'] = sumario[0] - sumario[1]
@@ -63,13 +62,13 @@ sumario.sort_values(by=['diff_rel'], ascending=False)
 
 # %%
 
-model = tree.DecisionTreeClassifier(random_state=42)
+arvore = tree.DecisionTreeClassifier(random_state=42)
 
-model.fit(X_train, y_train)
+arvore.fit(X_train, y_train)
 
 # %%
 
-feature_importance = (pd.Series(model.feature_importances_, index=X_train.columns)
+feature_importance = (pd.Series(arvore.feature_importances_, index=X_train.columns)
                       .sort_values(ascending=False)
                       .reset_index())
 
@@ -89,13 +88,20 @@ best_features
 # %%
 # Modify
 
-
 disc = discretisation.DecisionTreeDiscretiser(variables=best_features, random_state=42, cv=3, bin_output='bin_number', regression=False)
-disc.fit(X_train[best_features], y_train)
-
-x_train_transform = disc.transform(X_train[best_features])
 
 onehot = encoding.OneHotEncoder(variables=best_features, ignore_format=True)
-onehot.fit(x_train_transform, y_train)
 
-x_train_transform = onehot.transform(x_train_transform)
+# %%
+# Model
+
+model = ensemble.RandomForestClassifier(random_state=42, min_samples_leaf=25, n_estimators=100)
+
+model_pipeline = pipeline.Pipeline(
+    steps=[
+        ('Discretizar', disc),
+        ('OneHot', onehot),
+        ('Model', model)
+    ])
+
+# %%
