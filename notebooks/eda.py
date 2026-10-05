@@ -4,6 +4,10 @@ import pandas as pd
 
 from sklearn import model_selection
 from sklearn import tree
+from sklearn import linear_model
+from sklearn import metrics
+
+from feature_engine import discretisation, encoding
 
 # %%
 
@@ -81,4 +85,17 @@ best_features = (feature_importance[feature_importance['acum.'] < 0.96]['index']
                  .to_list())
 
 best_features
+
 # %%
+# Modify
+
+
+disc = discretisation.DecisionTreeDiscretiser(variables=best_features, random_state=42, cv=3, bin_output='bin_number', regression=False)
+disc.fit(X_train[best_features], y_train)
+
+x_train_transform = disc.transform(X_train[best_features])
+
+onehot = encoding.OneHotEncoder(variables=best_features, ignore_format=True)
+onehot.fit(x_train_transform, y_train)
+
+x_train_transform = onehot.transform(x_train_transform)
