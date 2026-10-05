@@ -97,7 +97,9 @@ onehot = encoding.OneHotEncoder(variables=best_features, ignore_format=True)
 # %%
 # Model
 
-model = ensemble.RandomForestClassifier(random_state=42, min_samples_leaf=25, n_estimators=100)
+model = ensemble.RandomForestClassifier(random_state=42,
+                                         min_samples_leaf=20,
+                                         n_estimators=500)
 
 model_pipeline = pipeline.Pipeline(
     steps=[
@@ -176,3 +178,4 @@ plt.legend([
 ])
 
 plt.show()
+# %%
