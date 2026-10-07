@@ -100,34 +100,34 @@ onehot = encoding.OneHotEncoder(variables=best_features, ignore_format=True)
 model = ensemble.RandomForestClassifier(random_state=42,
                                         n_jobs=2,)
 
-
-model_pipeline = pipeline.Pipeline(
-    steps=[
-        ('Discretizar', disc),
-        ('OneHot', onehot),
-        ('Model', model)
-    ])
-
 params = {
-    'Model__min_samples_leaf':[15,30,45,60],
-    'Model__n_estimators':[250,500,750,1000],
+    'min_samples_leaf': [15,30,45,60],
+    'n_estimators': [250,500,750,1000],
+    'criterion': ['gini', 'entropy', 'log_loss'],
 }
 
-grid = model_selection.GridSearchCV(model_pipeline,
+grid = model_selection.GridSearchCV(model,
                                      params, 
                                      cv=3,
                                      scoring='roc_auc',
                                      verbose=4)
 
-grid.fit(X_train[best_features], y_train)
+model_pipeline = pipeline.Pipeline(
+    steps=[
+        ('Discretizar', disc),
+        ('OneHot', onehot),
+        ('Model', grid)
+    ])
+
+model_pipeline.fit(X_train[best_features], y_train)
 
 # %%
 # Assets
 
 # Treino
 
-y_train_predict = grid.predict(X_train[best_features])
-y_train_proba = grid.predict_proba(X_train[best_features])[:,1]
+y_train_predict = model_pipeline.predict(X_train[best_features])
+y_train_proba = model_pipeline.predict_proba(X_train[best_features])[:,1]
 roc_train = metrics.roc_curve(y_train, y_train_proba)
 
 acc_train = metrics.accuracy_score(y_train, y_train_predict)
@@ -138,8 +138,8 @@ print("AUC Treino: ", auc_train)
 
 # Teste
 
-y_test_predict = grid.predict(X_test[best_features])
-y_test_proba = grid.predict_proba(X_test[best_features])[:,1]
+y_test_predict = model_pipeline.predict(X_test[best_features])
+y_test_proba = model_pipeline.predict_proba(X_test[best_features])[:,1]
 roc_test = metrics.roc_curve(y_test, y_test_proba)
 
 acc_test = metrics.accuracy_score(y_test, y_test_predict)
@@ -150,8 +150,8 @@ print("AUC Teste: ", auc_test)
 
 # Out Of Time
 
-y_oot_predict = grid.predict(oot[best_features])
-y_oot_proba = grid.predict_proba(oot[best_features])[:,1]
+y_oot_predict = model_pipeline.predict(oot[best_features])
+y_oot_proba = model_pipeline.predict_proba(oot[best_features])[:,1]
 roc_oot = metrics.roc_curve(oot[target], y_oot_proba)
 
 acc_oot = metrics.accuracy_score(oot[target], y_oot_predict)
