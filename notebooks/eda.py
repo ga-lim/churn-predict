@@ -98,8 +98,8 @@ onehot = encoding.OneHotEncoder(variables=best_features, ignore_format=True)
 # Model
 
 model = ensemble.RandomForestClassifier(random_state=42,
-                                         min_samples_leaf=20,
-                                         n_estimators=500)
+                                        n_jobs=2,)
+
 
 model_pipeline = pipeline.Pipeline(
     steps=[
@@ -108,15 +108,26 @@ model_pipeline = pipeline.Pipeline(
         ('Model', model)
     ])
 
+params = {
+    'Model__min_samples_leaf':[15,30,45,60],
+    'Model__n_estimators':[250,500,750,1000],
+}
+
+grid = model_selection.GridSearchCV(model_pipeline,
+                                     params, 
+                                     cv=3,
+                                     scoring='roc_auc',
+                                     verbose=4)
+
+grid.fit(X_train[best_features], y_train)
+
 # %%
 # Assets
 
 # Treino
 
-model_pipeline.fit(X_train[best_features], y_train)
-
-y_train_predict = model_pipeline.predict(X_train[best_features])
-y_train_proba = model_pipeline.predict_proba(X_train[best_features])[:,1]
+y_train_predict = grid.predict(X_train[best_features])
+y_train_proba = grid.predict_proba(X_train[best_features])[:,1]
 roc_train = metrics.roc_curve(y_train, y_train_proba)
 
 acc_train = metrics.accuracy_score(y_train, y_train_predict)
@@ -125,14 +136,10 @@ auc_train = metrics.roc_auc_score(y_train, y_train_proba)
 print("Acurácia Treino: ", acc_train)
 print("AUC Treino: ", auc_train)
 
-# %%
-
 # Teste
 
-model_pipeline.fit(X_test[best_features], y_test)
-
-y_test_predict = model_pipeline.predict(X_test[best_features])
-y_test_proba = model_pipeline.predict_proba(X_test[best_features])[:,1]
+y_test_predict = grid.predict(X_test[best_features])
+y_test_proba = grid.predict_proba(X_test[best_features])[:,1]
 roc_test = metrics.roc_curve(y_test, y_test_proba)
 
 acc_test = metrics.accuracy_score(y_test, y_test_predict)
@@ -141,14 +148,10 @@ auc_test = metrics.roc_auc_score(y_test, y_test_proba)
 print("Acurácia Teste: ", acc_test)
 print("AUC Teste: ", auc_test)
 
-# %%
-
 # Out Of Time
 
-model_pipeline.fit(oot[best_features], oot[target])
-
-y_oot_predict = model_pipeline.predict(oot[best_features])
-y_oot_proba = model_pipeline.predict_proba(oot[best_features])[:,1]
+y_oot_predict = grid.predict(oot[best_features])
+y_oot_proba = grid.predict_proba(oot[best_features])[:,1]
 roc_oot = metrics.roc_curve(oot[target], y_oot_proba)
 
 acc_oot = metrics.accuracy_score(oot[target], y_oot_predict)
@@ -172,9 +175,9 @@ plt.plot([0,1], [0,1], '--', color='black')
 plt.grid(True)
 plt.title('Curva ROC')
 plt.legend([
-    f'Treino: {auc_train*100:.2f}%',
-    f'Teste: {auc_test*100:.2f}%',
-    f'Out Of Time: {auc_oot*100:.2f}%'
+    f'Treino: {auc_train*100:.2f}',
+    f'Teste: {auc_test*100:.2f}',
+    f'Out Of Time: {auc_oot*100:.2f}'
 ])
 
 plt.show()
